@@ -13,5 +13,12 @@ class Settings(BaseSettings):
     raw_dir: Path = PROJECT_ROOT / "data" / "raw"
     db_path: Path = PROJECT_ROOT / "data" / "processed" / "retailpulse.duckdb"
 
+    # Forecasting / MLflow
+    mlflow_uri: str = f"sqlite:///{(PROJECT_ROOT / 'mlflow.db').as_posix()}"
+    mlflow_artifacts: Path = PROJECT_ROOT / "mlartifacts"
+    model_name: str = "retailpulse-demand"
+    forecast_stores: list[str] = ["CA_1", "TX_1", "WI_1"]  # one store per state keeps training ~minutes
+    train_start: str = "2014-01-01"
+
 
 settings = Settings()

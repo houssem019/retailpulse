@@ -8,13 +8,22 @@ license = "MIT"
 authors = [{ name = "Houssem Yousfi", email = "houssemyousfi1999@gmail.com" }]
 dependencies = [
     "duckdb>=1.1",
+    "fastapi>=0.148.0",
+    "lightgbm>=4.7.0",
+    "mlflow>=3",
+    "numpy>=2.4.6",
     "pandas>=2.2",
     "pyarrow>=17",
     "pydantic-settings>=2.4",
+    "uvicorn[standard]>=0.54.0",
 ]
 
 [dependency-groups]
-dev = ["pytest>=8", "ruff>=0.6"]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=8",
+    "ruff>=0.6",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -26,6 +35,7 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]  # the formatter owns line length; long SQL strings are fine
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

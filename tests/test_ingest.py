@@ -37,7 +37,9 @@ def test_prelaunch_days_are_dropped(db):
 
 def test_revenue_matches_units_times_price(db):
     con = duckdb.connect(str(db), read_only=True)
-    bad = con.execute("SELECT count(*) FROM sales WHERE abs(revenue - units * sell_price) > 0.01").fetchone()[0]
+    bad = con.execute("SELECT count(*) FROM sales WHERE abs(revenue - units * sell_price) > 0.01").fetchone()[
+        0
+    ]
     assert bad == 0
 
 

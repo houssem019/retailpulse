@@ -94,8 +94,10 @@ def build_database(raw_dir: Path, db_path: Path, stores: list[str] | None = None
     """)
     con.execute("DROP TABLE raw_sales")
 
-    counts = {t: con.execute(f"SELECT count(*) FROM {t}").fetchone()[0]
-              for t in ("items", "stores", "calendar", "prices", "sales")}
+    counts = {
+        t: con.execute(f"SELECT count(*) FROM {t}").fetchone()[0]
+        for t in ("items", "stores", "calendar", "prices", "sales")
+    }
     con.close()
     return counts
 
