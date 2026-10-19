@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# Env / secrets
+.env
+
+# Data & artifacts (large files are never committed; small fixtures live in tests/fixtures)
+data/raw/
+data/processed/
+*.duckdb
+*.duckdb.wal
+mlruns/
+mlartifacts/
+outputs/
+checkpoints/
+*.safetensors
+*.bin
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
