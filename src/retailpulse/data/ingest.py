@@ -28,6 +28,7 @@ from pathlib import Path
 import duckdb
 
 from retailpulse.config import settings
+from retailpulse.data.inventory import build_inventory_signals
 
 SALES_FILE = "sales_train_evaluation.csv"
 CALENDAR_FILE = "calendar.csv"
@@ -93,10 +94,11 @@ def build_database(raw_dir: Path, db_path: Path, stores: list[str] | None = None
         ORDER BY l.store_id, l.item_id, c.date
     """)
     con.execute("DROP TABLE raw_sales")
+    build_inventory_signals(con)
 
     counts = {
         t: con.execute(f"SELECT count(*) FROM {t}").fetchone()[0]
-        for t in ("items", "stores", "calendar", "prices", "sales")
+        for t in ("items", "stores", "calendar", "prices", "sales", "inventory_signals")
     }
     con.close()
     return counts

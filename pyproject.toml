@@ -7,14 +7,19 @@ requires-python = ">=3.11,<3.13"
 license = "MIT"
 authors = [{ name = "Houssem Yousfi", email = "houssemyousfi1999@gmail.com" }]
 dependencies = [
+    "anthropic>=1.15.0",
     "duckdb>=1.1",
     "fastapi>=0.148.0",
+    "httpx>=0.28.1",
+    "langgraph>=1.2.16",
     "lightgbm>=4.7.0",
     "mlflow>=3",
     "numpy>=2.4.6",
     "pandas>=2.2",
+    "plotly>=7.1.0",
     "pyarrow>=17",
     "pydantic-settings>=2.4",
+    "sqlglot>=30.23.0",
     "uvicorn[standard]>=0.54.0",
 ]
 

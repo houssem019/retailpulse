@@ -52,3 +52,22 @@ Format: **Problem → Root cause → Fix → What I'd do at scale.**
 - **Result:** the monotone model (v2) is *also* slightly more accurate (WRMSSE 0.8227 vs 0.8240) and trains 2.5× faster (171 vs 466 boosting rounds), because the constraint acts as regularisation. The champion gate promoted it automatically.
   - After the fix, at CA_1, a −20% price change gives +7% to +13% demand and a +20% change gives −1% to −3%, depending on the item.
   - The asymmetry, where cuts move demand more than increases, matches what retailers typically see.
+
+## 8. "Inventory" with no inventory data
+- **Problem:** the resume promises inventory questions, but M5 contains no on-hand stock.
+- **Fix:** infer it statistically. A zero-sales run of k days on an item averaging λ units/day has probability e^(−λk) under Poisson demand, so runs below 1% are flagged `likely_out_of_stock`.
+- **Gotcha found on real data:** the top flag was FOODS_3_441 @ CA_1, at **361 days** without a sale despite 22 units/day before. That's a delisting the price feed kept pricing, not a stockout. Runs over 56 days are now labelled `possibly_discontinued`.
+- **Interview line:** "Phantom-inventory detection from POS data is a real retail technique. The interesting part was separating stockouts from delistings."
+
+## 9. The cost estimator counted `SELECT * FROM sales LIMIT 200` as 94M rows
+- **Problem:** DuckDB plans `SELECT * … LIMIT n` with *late materialisation*: one scan reads only row ids under the LIMIT, and a second scan fetches the columns for those rows. My first estimator summed both scans' cardinality (2 × 47M) and asked for approval on a trivial query.
+- **Fix:** ignore scans with an empty projection list, which are row-id-only scans.
+- **Lesson:** cost guards built on an optimizer's plan need testing against that optimizer's quirks. I verified on four query shapes: full scan, count, aggregate, and self-join.
+
+## 10. LangGraph re-runs a node after an interrupt
+- **Problem:** `interrupt()` pauses a node, and on resume LangGraph **re-executes the whole node from the top**, replaying earlier `interrupt()` calls with their stored answers. If a tool ran before the approval prompt, it would run twice.
+- **Fix:** the tools node first asks for every needed approval, then executes all tools. Tested with approve and deny.
+
+## 11. DuckDB: one file, two connection configs, one process
+- **Problem:** in tests, the forecast API (plain read-only connection) and the SQL sandbox (read-only with external access disabled) opened the same file in one process. DuckDB refuses connections to the same file with different configs.
+- **Fix:** the test fixture gives the sandbox its own copy. In deployment, the API and the agent/MCP server are separate processes, so this doesn't occur there. It's still a constraint to remember if they're ever co-located.

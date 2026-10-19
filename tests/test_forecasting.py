@@ -1,4 +1,3 @@
-import shutil
 from datetime import date, timedelta
 
 import duckdb
@@ -10,7 +9,6 @@ from fastapi.testclient import TestClient
 from retailpulse.forecasting.features import FEATURES, build_features, last_actual_date
 from retailpulse.forecasting.metrics import wrmsse
 from retailpulse.forecasting.serve import create_app
-from retailpulse.forecasting.train import TrainConfig, train
 
 ITEM, STORE = "FOODS_1_001", "CA_1"
 
@@ -65,24 +63,6 @@ def test_wrmsse_perfect_and_weighted():
     )
     assert wrmsse(actuals, "perfect", scales) == 0
     assert wrmsse(actuals, "off", scales) == pytest.approx(1.0)  # sqrt(4/4) on the only weighted series
-
-
-@pytest.fixture(scope="module")
-def trained(fixture_db, tmp_path_factory):
-    work = tmp_path_factory.mktemp("train")
-    db = work / "db.duckdb"
-    shutil.copy(fixture_db, db)
-    cfg = TrainConfig(
-        db_path=db,
-        stores=["CA_1", "TX_1", "WI_1"],
-        train_start=date(2015, 1, 1),
-        num_boost_round=30,
-        early_stopping_rounds=10,
-        mlflow_uri=f"sqlite:///{(work / 'mlflow.db').as_posix()}",
-        mlflow_artifacts=work / "artifacts",
-        model_name="test-demand",
-    )
-    return cfg, train(cfg)
 
 
 def test_training_registers_and_publishes(trained):

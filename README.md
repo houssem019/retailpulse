@@ -13,7 +13,8 @@ uv run python -m retailpulse.data.ingest            # DuckDB warehouse (~90 s, 4
 uv run python -m retailpulse.forecasting.train      # LightGBM -> MLflow registry (~6 min, 3 stores)
 uv run uvicorn retailpulse.forecasting.serve:app --port 8001   # /forecast, /what-if
 uv run mlflow ui --backend-store-uri sqlite:///mlflow.db       # inspect runs & registry
-uv run pytest                                        # runs on a committed 105-series fixture, no Kaggle needed
+uv run python -m retailpulse.agent "Which state had the highest revenue in 2015?"   # needs LLM_PROVIDER (see .env.example)
+uv run pytest                                        # runs on a committed 105-series fixture, no Kaggle / API key needed
 ```
 
 ## Demand forecasting results
