@@ -71,3 +71,13 @@ Format: **Problem → Root cause → Fix → What I'd do at scale.**
 ## 11. DuckDB: one file, two connection configs, one process
 - **Problem:** in tests, the forecast API (plain read-only connection) and the SQL sandbox (read-only with external access disabled) opened the same file in one process. DuckDB refuses connections to the same file with different configs.
 - **Fix:** the test fixture gives the sandbox its own copy. In deployment, the API and the agent/MCP server are separate processes, so this doesn't occur there. It's still a constraint to remember if they're ever co-located.
+
+## 12. MCP SDK v2 broke the v1 tutorials
+- **Problem:** every MCP Python example online uses `from mcp.server.fastmcp import FastMCP`. The installed SDK is **v2.3**, where that import raises an error: FastMCP was renamed `MCPServer` and other APIs changed.
+- **Fix:** I read the installed SDK's code and docstrings instead of relying on memory or blog posts, and used `MCPServer`, `ToolError` (which produces `is_error` results the model can read) and `mcp.Client(server)` for in-process tests.
+- **Lesson:** pin versions, and check the installed library's API before writing code against it.
+
+## 13. Asking the user for approval mid-tool-call over MCP
+- **Problem:** my first version called `ctx.elicit(...)`, which sends a server-initiated request to the client. In tests it failed with `NoBackChannelError`. On the 2026-07-28 protocol, servers no longer push requests mid-call. Instead the tool **returns** `InputRequiredResult`, the client collects the input and **retries the same call** with `input_responses`.
+- **Fix:** support three client generations: InputRequiredResult (new), `ctx.elicit` (older clients with elicitation), and a plain error that makes the model ask the user in chat and retry with `confirm_expensive=true` (no elicitation).
+- **Interview angle:** this is the stateless, retry-based pattern. The server keeps no paused state, which suits horizontally scaled HTTP deployments. Contrast it with LangGraph's checkpointed `interrupt()`, which pauses server-side state.

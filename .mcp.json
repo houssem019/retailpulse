@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "retailpulse": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "python", "-m", "retailpulse.mcp_server"]
+    }
+  }
+}

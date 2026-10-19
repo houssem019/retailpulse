@@ -17,6 +17,19 @@ uv run python -m retailpulse.agent "Which state had the highest revenue in 2015?
 uv run pytest                                        # runs on a committed 105-series fixture, no Kaggle / API key needed
 ```
 
+## Use it from Claude Code (MCP)
+The repo ships a `.mcp.json`, so opening Claude Code in this folder offers the `retailpulse` MCP server. From another folder, register it with:
+```bash
+claude mcp add retailpulse -- uv --directory /path/to/retailpulse run python -m retailpulse.mcp_server
+```
+Start the forecast API, which the forecast tools call (`uv run uvicorn retailpulse.forecasting.serve:app --port 8001`). Then try prompts like:
+- *"Which 5 FOODS items lost the most units to likely stockouts, and in which stores?"*
+- *"How accurate was the forecast for HOUSEHOLD in TX_1 over the backtest window? Give WAPE and bias."*
+- *"If we cut the price of FOODS_3_090 in CA_1 by 15%, what happens to demand over the next 4 weeks?"*
+- *"Chart monthly FOODS revenue by state for 2015."*
+
+Tools: `get_schema`, `run_sql`, `forecast_item`, `price_what_if`, `create_chart`. They share the same guardrails as the built-in agent. Queries that scan very large amounts of data ask for your approval.
+
 ## Demand forecasting results
 28-day holdout (2016-04-25 to 2016-05-22), 3 stores (CA_1, TX_1, WI_1), 9,147 item-store series:
 
