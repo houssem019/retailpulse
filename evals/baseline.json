@@ -1,10 +1,10 @@
 {
-  "note": "Floors for the CI eval gate (replayed cassette on the fixture warehouse). Update deliberately when a new recording is reviewed.",
-  "tolerance": 0.0,
+  "note": "Floors for the CI eval gate: replayed qwen2.5:7b (Ollama, CPU) cassette on the fixture warehouse, recorded 2026-10-20. Tolerance ~1 question in 25 absorbs cross-OS numeric noise in forecast-derived gold answers. Raise the floors deliberately when a better recording is reviewed.",
+  "tolerance": 0.05,
   "metrics": {
-    "answer_accuracy": 0.0,
-    "execution_match": 0.0,
-    "sql_validity": 0.0,
-    "tool_selection_accuracy": 0.0
+    "answer_accuracy": 0.68,
+    "execution_match": 0.611,
+    "sql_validity": 0.526,
+    "tool_selection_accuracy": 0.96
   }
 }

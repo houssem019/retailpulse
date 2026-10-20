@@ -122,7 +122,7 @@ def run_question(agent: RetailAgent, q: dict, toolbox: Toolbox) -> QuestionResul
         answer=r.answer,
         correct=grade_answer(q["kind"], r.answer, gold, r.tool_calls, q["expected_tools"]),
         tool_selection_ok=tool_selection_ok(q["expected_tools"], r.tools_used),
-        execution_match=execution_match(q["kind"], gold, r.tool_calls),
+        execution_match=execution_match(q["kind"], gold, r.tool_calls) if "gold_sql" in q else None,
         tools_used=r.tools_used,
         sql_calls=len(sql_calls),
         sql_errors=sum(t["is_error"] for t in sql_calls),

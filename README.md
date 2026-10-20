@@ -44,6 +44,27 @@ If a query needs approval, the response is `{"status": "approval_required", "thr
 uv run python scripts/export_champion.py && docker compose up --build    # agent :8000, forecast :8001, MCP :8002/mcp
 ```
 
+## Agent evaluation
+25 benchmark questions: SQL analytics, inventory, forecast accuracy, item forecasts, price what-ifs, charts and guardrail attacks. Gold answers are computed at eval time.
+
+Baseline, with a free local model (`qwen2.5:7b` via Ollama on CPU), on the fixture warehouse:
+
+| metric | score |
+|---|---|
+| Answer accuracy | **68%** |
+| Execution match (agent's SQL returned the gold value) | 61% |
+| SQL validity (queries that ran without error) | 53% |
+| Tool-selection accuracy | 96% |
+| Avg LLM calls / latency per question | 2.6 / ~2 min (CPU) |
+| Cost | $0 |
+
+CI replays the recorded responses (33 s, no API key) and fails if any metric drops below `evals/baseline.json`. The failure analysis is in `docs/CHALLENGES.md` (#17).
+
+```bash
+uv run python -m retailpulse.evals.run --provider fake --cassette evals/cassettes/qwen2.5-7b.json --gate   # what CI runs
+uv run python -m retailpulse.evals.run --provider ollama --cassette evals/cassettes/qwen2.5-7b.json --record   # re-record
+```
+
 ## Demand forecasting results
 28-day holdout (2016-04-25 to 2016-05-22), 3 stores (CA_1, TX_1, WI_1), 9,147 item-store series:
 
