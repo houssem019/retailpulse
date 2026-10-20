@@ -8,7 +8,9 @@ how we avoid training/serving skew without a separate feature store.
 
 from __future__ import annotations
 
+import json
 import os
+import shutil
 from contextlib import asynccontextmanager
 from datetime import date, timedelta
 from pathlib import Path
@@ -66,20 +68,45 @@ class WhatIfResponse(BaseModel):
     points: list[WhatIfPoint]
 
 
+def export_champion(out_dir: Path, mlflow_uri: str | None = None, model_name: str | None = None) -> str:
+    """Copy the current champion out of the registry into a self-contained folder (+ version file).
+
+    The registry is where models are compared and promoted; serving containers load an immutable,
+    portable copy instead (registry paths are absolute host paths and don't exist inside a container).
+    """
+    model_name = model_name or settings.model_name
+    mlflow.set_tracking_uri(mlflow_uri or settings.mlflow_uri)
+    mv = MlflowClient().get_model_version_by_alias(model_name, CHAMPION)
+    if out_dir.exists():
+        shutil.rmtree(out_dir)
+    mlflow.artifacts.download_artifacts(f"models:/{model_name}@{CHAMPION}", dst_path=str(out_dir))
+    (out_dir / "champion.json").write_text(json.dumps({"model_name": model_name, "version": str(mv.version)}))
+    return str(mv.version)
+
+
 def create_app(
-    db_path: Path | None = None, mlflow_uri: str | None = None, model_name: str | None = None
+    db_path: Path | None = None,
+    mlflow_uri: str | None = None,
+    model_name: str | None = None,
+    model_dir: Path | None = None,
 ) -> FastAPI:
+    """Serve the champion from the MLflow registry, or from an exported folder if `model_dir` is set."""
     db_path = db_path or settings.db_path
     mlflow_uri = mlflow_uri or settings.mlflow_uri
     model_name = model_name or settings.model_name
+    model_dir = model_dir or settings.model_dir
     state: dict = {}
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        mlflow.set_tracking_uri(mlflow_uri)
-        mv = MlflowClient().get_model_version_by_alias(model_name, CHAMPION)
-        state["model"] = mlflow.lightgbm.load_model(f"models:/{model_name}@{CHAMPION}")
-        state["version"] = str(mv.version)
+        if model_dir:
+            state["model"] = mlflow.lightgbm.load_model(str(model_dir))
+            state["version"] = json.loads((Path(model_dir) / "champion.json").read_text())["version"]
+        else:
+            mlflow.set_tracking_uri(mlflow_uri)
+            mv = MlflowClient().get_model_version_by_alias(model_name, CHAMPION)
+            state["model"] = mlflow.lightgbm.load_model(f"models:/{model_name}@{CHAMPION}")
+            state["version"] = str(mv.version)
         state["con"] = duckdb.connect(str(db_path), read_only=True)
         state["last"] = last_actual_date(state["con"])
         yield

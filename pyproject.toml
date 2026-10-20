@@ -11,6 +11,7 @@ dependencies = [
     "duckdb>=1.1",
     "fastapi>=0.148.0",
     "httpx>=0.28.1",
+    "langfuse>=5.0.3",
     "langgraph>=1.2.16",
     "lightgbm>=4.7.0",
     "mcp>=1.10",
@@ -20,7 +21,9 @@ dependencies = [
     "plotly>=7.1.0",
     "pyarrow>=17",
     "pydantic-settings>=2.4",
+    "pyyaml>=6.0.3",
     "sqlglot>=30.23.0",
+    "sse-starlette>=3.5.0",
     "uvicorn[standard]>=0.54.0",
 ]
 

@@ -1,0 +1,61 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      MLFLOW_DISABLE_AGENT_HINT: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+          enable-cache: true
+
+      - name: Install
+        run: uv sync --locked
+
+      - name: Lint
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Unit & integration tests (fixture warehouse, no API key)
+        run: uv run pytest -q
+
+      # Replays recorded model responses against the fixture warehouse. Fails if any metric drops below
+      # evals/baseline.json, or if the prompt / tool definitions changed without re-recording.
+      - name: Agent eval regression gate
+        if: hashFiles('evals/cassettes/*.json') != ''
+        run: >-
+          uv run python -m retailpulse.evals.run
+          --provider fake --cassette evals/cassettes/qwen2.5-7b.json --gate --out eval-results
+
+      - name: Upload eval report
+        if: always() && hashFiles('evals/cassettes/*.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results
+          path: eval-results/
+
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: retailpulse:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

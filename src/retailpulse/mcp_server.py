@@ -193,10 +193,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="RetailPulse MCP server")
     parser.add_argument("--http", action="store_true", help="Serve Streamable HTTP instead of stdio")
     parser.add_argument("--port", type=int, default=8002)
+    parser.add_argument("--host", default="127.0.0.1", help="0.0.0.0 inside a container")
     args = parser.parse_args()
     server = build_server(Toolbox.from_settings())
     if args.http:
-        server.run("streamable-http", port=args.port)
+        server.run("streamable-http", host=args.host, port=args.port)
     else:
         server.run("stdio")
 

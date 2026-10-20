@@ -1,0 +1,59 @@
+# RetailPulse stack. Prerequisites on the host (built once, mounted read-only):
+#   data/processed/retailpulse.duckdb   <- uv run python -m retailpulse.data.ingest
+#   models/champion/                    <- uv run python -m retailpulse.forecasting.train
+#                                          uv run python scripts/export_champion.py
+# Then:  docker compose up --build      (agent :8000, forecast :8001, MCP over HTTP :8002/mcp)
+#
+# LLM: defaults to Ollama on the host (free); set LLM_PROVIDER=anthropic + ANTHROPIC_API_KEY to use Claude.
+# Tracing: set LANGFUSE_PUBLIC_KEY / LANGFUSE_SECRET_KEY / LANGFUSE_HOST (Langfuse Cloud or self-hosted).
+
+x-app: &app
+  build: .
+  image: retailpulse:latest
+  restart: unless-stopped
+  volumes:
+    - ./data/processed:/data:ro
+    - ./models:/models:ro
+
+x-agent-env: &agent-env
+  LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+  LLM_MODEL: ${LLM_MODEL:-claude-opus-5-5}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  OLLAMA_HOST: ${OLLAMA_HOST:-http://host.docker.internal:11434}
+  OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b}
+  RETAILPULSE_FORECAST_API_URL: http://forecast-api:8001
+  LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+  LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+  LANGFUSE_HOST: ${LANGFUSE_HOST:-https://cloud.langfuse.com}
+
+services:
+  forecast-api:
+    <<: *app
+    command: uvicorn retailpulse.forecasting.serve:app --host 0.0.0.0 --port 8001
+    environment:
+      PORT: "8001"
+    ports: ["8001:8001"]
+
+  agent-api:
+    <<: *app
+    command: uvicorn retailpulse.api:app --host 0.0.0.0 --port 8000
+    environment:
+      <<: *agent-env
+      PORT: "8000"
+    ports: ["8000:8000"]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    depends_on:
+      forecast-api:
+        condition: service_healthy
+
+  mcp:
+    <<: *app
+    command: python -m retailpulse.mcp_server --http --host 0.0.0.0 --port 8002
+    environment:
+      <<: *agent-env
+    ports: ["8002:8002"]
+    healthcheck:
+      disable: true  # MCP over HTTP has no /health route
+    depends_on:
+      forecast-api:
+        condition: service_healthy

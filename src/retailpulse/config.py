@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     # Forecasting / MLflow
     mlflow_uri: str = f"sqlite:///{(PROJECT_ROOT / 'mlflow.db').as_posix()}"
     mlflow_artifacts: Path = PROJECT_ROOT / "mlartifacts"
+    model_dir: Path | None = None  # serve an exported champion folder instead of the registry (containers)
     model_name: str = "retailpulse-demand"
     forecast_stores: list[str] = ["CA_1", "TX_1", "WI_1"]  # one store per state keeps training ~minutes
     train_start: str = "2014-01-01"

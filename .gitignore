@@ -31,3 +31,4 @@ checkpoints/
 Thumbs.db
 mlflow.db
 outputs/
+models/

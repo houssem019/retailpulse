@@ -81,3 +81,21 @@ Format: **Problem → Root cause → Fix → What I'd do at scale.**
 - **Problem:** my first version called `ctx.elicit(...)`, which sends a server-initiated request to the client. In tests it failed with `NoBackChannelError`. On the 2026-07-28 protocol, servers no longer push requests mid-call. Instead the tool **returns** `InputRequiredResult`, the client collects the input and **retries the same call** with `input_responses`.
 - **Fix:** support three client generations: InputRequiredResult (new), `ctx.elicit` (older clients with elicitation), and a plain error that makes the model ask the user in chat and retry with `confirm_expensive=true` (no elicitation).
 - **Interview angle:** this is the stateless, retry-based pattern. The server keeps no paused state, which suits horizontally scaled HTTP deployments. Contrast it with LangGraph's checkpointed `interrupt()`, which pauses server-side state.
+
+## 14. Record on Windows, replay on Linux
+- **Problem:** cassettes were keyed by a hash of the *entire* request, including tool results. LightGBM's multithreaded training gives forecasts that differ in the last decimals across OSes and CPU counts, so every CI replay of a forecast question would have been a "cassette miss".
+- **Fix:** strip tool-result payloads from the key, keeping only the id and error flag. Recordings are invalidated by what the *model* saw and decided (prompt, tool schemas, its own calls), not by numeric noise.
+- **Still caught:** genuine data changes, because gold answers are recomputed at eval time and the recorded answer must match them within 2%.
+
+## 15. MLflow registry paths don't travel into containers
+- **Problem:** the registry (`mlflow.db`) stores artifact locations as absolute host paths, `file:///C:/Users/.../mlartifacts/...`, which don't exist in a Linux container.
+- **Fix:** `scripts/export_champion.py` downloads the champion into `models/champion/` with a `champion.json` version file. The forecast service loads it when `RETAILPULSE_MODEL_DIR` is set; a test covers this path.
+- **At scale:** a remote registry (Databricks Unity Catalog, or MLflow with S3 artifacts) and an image or volume per model version.
+
+## 16. Slow downloads shaped the plan
+- **Problem:** winget's download of the Ollama installer hung at 0 MB. The 4.7 GB model download stalled overnight (machine sleep) and then ran at about 0.5 to 2 MB/s.
+- **Fixes:**
+  - Downloaded the signed installer directly from GitHub and verified the Authenticode signature (Ollama Inc.) before running it.
+  - Resumed `ollama pull`, which continues from partial blobs.
+  - Kept working on code that needs no downloads.
+  - Moved the Docker image build to GitHub Actions, using their bandwidth.

@@ -2,9 +2,10 @@
 
 * ScriptedLLM - returns a fixed list of responses in order (unit tests).
 * ReplayLLM   - a "cassette": in record mode it wraps a real LLM and saves every response keyed by a
-  hash of the full request (system prompt + tools + messages); in replay mode it serves them back.
-  Any change to the prompt, tool definitions or tool results changes the hash, so CI fails loudly
-  ("cassette miss") instead of silently testing stale behaviour. Re-record with a real model then.
+  hash of the request (system prompt + tools + conversation, minus tool result payloads); in replay
+  mode it serves them back. Any change to the prompt, tool definitions or the agent's own decisions
+  changes the hash, so CI fails loudly ("cassette miss") instead of silently testing stale
+  behaviour. Re-record with a real model then.
 """
 
 from __future__ import annotations
@@ -44,9 +45,35 @@ class CassetteMiss(RuntimeError):
     pass
 
 
+def _without_tool_output(messages: list[dict]) -> list[dict]:
+    """Drop tool *results* from the key. They are data, not decisions: a forecast that differs in the 6th
+    decimal between Windows and Linux (thread scheduling in LightGBM) must not invalidate a recording.
+    Changed data is still caught, because answers are graded against gold values computed at eval time."""
+    out = []
+    for m in messages:
+        if isinstance(m["content"], list):
+            m = {
+                **m,
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": b["tool_use_id"],
+                        "is_error": b.get("is_error", False),
+                    }
+                    if b.get("type") == "tool_result"
+                    else b
+                    for b in m["content"]
+                ],
+            }
+        out.append(m)
+    return out
+
+
 def request_key(system: str, messages: list[dict], tools: list[dict]) -> str:
     payload = json.dumps(
-        {"system": system, "messages": messages, "tools": tools}, sort_keys=True, default=str
+        {"system": system, "messages": _without_tool_output(messages), "tools": tools},
+        sort_keys=True,
+        default=str,
     )
     return hashlib.sha256(payload.encode()).hexdigest()[:24]
 

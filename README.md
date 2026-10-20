@@ -30,6 +30,20 @@ Start the forecast API, which the forecast tools call (`uv run uvicorn retailpul
 
 Tools: `get_schema`, `run_sql`, `forecast_item`, `price_what_if`, `create_chart`. They share the same guardrails as the built-in agent. Queries that scan very large amounts of data ask for your approval.
 
+## Agent API, tracing, Docker
+```bash
+uv run uvicorn retailpulse.api:app --port 8000      # POST /ask, /approve, /ask/stream (SSE); GET /health
+curl -X POST localhost:8000/ask -H 'content-type: application/json' -d '{"question": "Top 3 departments by 2015 units?"}'
+```
+If a query needs approval, the response is `{"status": "approval_required", "thread_id": ..., "approval": {"sql": ..., "estimated_rows_scanned": ...}}`. Answer it with `POST /approve {"thread_id": ..., "approve": true}`.
+
+**Tracing:** set `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` and `LANGFUSE_HOST` to get a trace per question. Each trace has an agent span, then one generation per LLM call (tokens and cost), then one span per tool call. Without them, each question still produces a JSON log line with latency, tokens and cost.
+
+**Docker:** build the warehouse and train the model on the host, then:
+```bash
+uv run python scripts/export_champion.py && docker compose up --build    # agent :8000, forecast :8001, MCP :8002/mcp
+```
+
 ## Demand forecasting results
 28-day holdout (2016-04-25 to 2016-05-22), 3 stores (CA_1, TX_1, WI_1), 9,147 item-store series:
 

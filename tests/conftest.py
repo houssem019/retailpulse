@@ -1,39 +1,23 @@
 import shutil
-from datetime import date
 from pathlib import Path
 
 import pytest
 
 from retailpulse.data.ingest import build_database
-from retailpulse.forecasting.train import TrainConfig, train
-
-FIXTURE = Path(__file__).parent / "fixtures" / "m5_sample"
+from retailpulse.evals.env import FIXTURE_DIR, train_fixture_model
 
 
 @pytest.fixture(scope="session")
 def fixture_db(tmp_path_factory) -> Path:
     """A DuckDB warehouse built from the committed raw-format M5 sample via the real ingest path."""
     path = tmp_path_factory.mktemp("db") / "fixture.duckdb"
-    build_database(FIXTURE, path)
+    build_database(FIXTURE_DIR, path)
     return path
 
 
 @pytest.fixture(scope="session")
 def trained(fixture_db, tmp_path_factory):
-    work = tmp_path_factory.mktemp("train")
-    db = work / "db.duckdb"
-    shutil.copy(fixture_db, db)
-    cfg = TrainConfig(
-        db_path=db,
-        stores=["CA_1", "TX_1", "WI_1"],
-        train_start=date(2015, 1, 1),
-        num_boost_round=30,
-        early_stopping_rounds=10,
-        mlflow_uri=f"sqlite:///{(work / 'mlflow.db').as_posix()}",
-        mlflow_artifacts=work / "artifacts",
-        model_name="test-demand",
-    )
-    return cfg, train(cfg)
+    return train_fixture_model(fixture_db, tmp_path_factory.mktemp("train"))
 
 
 @pytest.fixture(scope="session")

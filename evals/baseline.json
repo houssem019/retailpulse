@@ -1,0 +1,10 @@
+{
+  "note": "Floors for the CI eval gate (replayed cassette on the fixture warehouse). Update deliberately when a new recording is reviewed.",
+  "tolerance": 0.0,
+  "metrics": {
+    "answer_accuracy": 0.0,
+    "execution_match": 0.0,
+    "sql_validity": 0.0,
+    "tool_selection_accuracy": 0.0
+  }
+}

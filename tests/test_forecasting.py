@@ -100,3 +100,16 @@ def test_price_cut_never_lowers_demand(trained):
             ).json()
             for p in body["points"]:
                 assert sign * (p["scenario"] - p["baseline"]) >= -1e-9
+
+
+def test_serve_from_exported_champion(trained, tmp_path):
+    """Containers serve an exported copy of the champion, not the registry."""
+    from retailpulse.forecasting.serve import export_champion
+
+    cfg, _ = trained
+    version = export_champion(tmp_path / "champion", mlflow_uri=cfg.mlflow_uri, model_name=cfg.model_name)
+    app = create_app(db_path=cfg.db_path, model_dir=tmp_path / "champion")
+    with TestClient(app) as client:
+        assert client.get("/health").json()["model_version"] == version
+        r = client.post("/forecast", json={"item_id": ITEM, "store_id": STORE, "horizon": 7})
+        assert r.status_code == 200
