@@ -20,7 +20,7 @@ Format: **Problem → Root cause → Fix → What I'd do at scale.**
 - **Fix (planned):** derive inventory-health *signals* rather than stock levels:
   - zero-sales streaks while the item is listed (a likely stockout or out-of-shelf);
   - days of supply against the forecast.
-  - **Interview line:** "M5 has no on-hand data, so I modelled availability from sales patterns. That's the same approach retailers use for phantom-inventory detection."
+  - **Takeaway:** "M5 has no on-hand data, so I modelled availability from sales patterns. That's the same approach retailers use for phantom-inventory detection."
 
 ## 4. Training/serving skew in price features
 - **Problem:** `price_ratio` (price vs the series' mean price) was first computed with a window over the query's date range. Training queries span years and serving queries span 28 days, so the same row got different values.
@@ -57,7 +57,7 @@ Format: **Problem → Root cause → Fix → What I'd do at scale.**
 - **Problem:** the resume promises inventory questions, but M5 contains no on-hand stock.
 - **Fix:** infer it statistically. A zero-sales run of k days on an item averaging λ units/day has probability e^(−λk) under Poisson demand, so runs below 1% are flagged `likely_out_of_stock`.
 - **Gotcha found on real data:** the top flag was FOODS_3_441 @ CA_1, at **361 days** without a sale despite 22 units/day before. That's a delisting the price feed kept pricing, not a stockout. Runs over 56 days are now labelled `possibly_discontinued`.
-- **Interview line:** "Phantom-inventory detection from POS data is a real retail technique. The interesting part was separating stockouts from delistings."
+- **Takeaway:** "Phantom-inventory detection from POS data is a real retail technique. The interesting part was separating stockouts from delistings."
 
 ## 9. The cost estimator counted `SELECT * FROM sales LIMIT 200` as 94M rows
 - **Problem:** DuckDB plans `SELECT * … LIMIT n` with *late materialisation*: one scan reads only row ids under the LIMIT, and a second scan fetches the columns for those rows. My first estimator summed both scans' cardinality (2 × 47M) and asked for approval on a trivial query.
@@ -80,7 +80,7 @@ Format: **Problem → Root cause → Fix → What I'd do at scale.**
 ## 13. Asking the user for approval mid-tool-call over MCP
 - **Problem:** my first version called `ctx.elicit(...)`, which sends a server-initiated request to the client. In tests it failed with `NoBackChannelError`. On the 2026-07-28 protocol, servers no longer push requests mid-call. Instead the tool **returns** `InputRequiredResult`, the client collects the input and **retries the same call** with `input_responses`.
 - **Fix:** support three client generations: InputRequiredResult (new), `ctx.elicit` (older clients with elicitation), and a plain error that makes the model ask the user in chat and retry with `confirm_expensive=true` (no elicitation).
-- **Interview angle:** this is the stateless, retry-based pattern. The server keeps no paused state, which suits horizontally scaled HTTP deployments. Contrast it with LangGraph's checkpointed `interrupt()`, which pauses server-side state.
+- **Design note:** this is the stateless, retry-based pattern. The server keeps no paused state, which suits horizontally scaled HTTP deployments. Contrast it with LangGraph's checkpointed `interrupt()`, which pauses server-side state.
 
 ## 14. Record on Windows, replay on Linux
 - **Problem:** cassettes were keyed by a hash of the *entire* request, including tool results. LightGBM's multithreaded training gives forecasts that differ in the last decimals across OSes and CPU counts, so every CI replay of a forecast question would have been a "cassette miss".

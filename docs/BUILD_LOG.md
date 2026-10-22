@@ -1,7 +1,7 @@
 # Build Log
 
 Chronological record of what was built, **why**, and which alternatives were rejected.
-Read this before an interview to retell the story of the project.
+Read this for the story of the project, step by step.
 
 | Step | What | Why / alternatives considered |
 |------|------|-------------------------------|
